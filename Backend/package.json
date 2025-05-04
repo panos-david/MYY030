@@ -1,0 +1,21 @@
+{
+  "name": "football-stats-backend",
+  "version": "1.0.0",
+  "description": "API server for football stats",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "concurrently \"npm start\" \"cd ../FrontEnd && npm run dev\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.14.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

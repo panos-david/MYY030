@@ -1,0 +1,8 @@
+Έτοιμο
+> Database scheme
+> Data filters & pass 'em to database
+> SQL Views
+
+To do:
+> Node Backend to fetch data (API)
+> React Front End

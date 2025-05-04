@@ -1,0 +1,3 @@
+psycopg2-binary # Or psycopg2 if you have build dependencies installed
+python-dotenv
+# Add any other Python libraries your filter.py script needs
