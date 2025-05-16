@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Ensure port is correct
+const API_BASE_URL = 'http://localhost:3001/api';
 
 function CountryActivity() {
     const [countryName, setCountryName] = useState('');
@@ -10,14 +10,12 @@ function CountryActivity() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Fetch country list
     useEffect(() => {
         axios.get(`${API_BASE_URL}/distinct-countries`)
             .then(response => setCountryList(response.data || []))
             .catch(err => console.error("Error fetching country list:", err));
     }, []);
 
-    // Fetch activity data when country changes
     useEffect(() => {
         if (!countryName) {
             setActivityData(null);

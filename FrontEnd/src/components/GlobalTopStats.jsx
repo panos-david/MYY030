@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Ensure port is correct
+const API_BASE_URL = 'http://localhost:3001/api';
 
 const metrics = [
     { key: 'matches', label: 'Matches Played' },
@@ -17,19 +17,16 @@ function GlobalTopStats() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [continent, setContinent] = useState('');
-    // Add year filters if needed later
     // const [startYear, setStartYear] = useState('');
     // const [endYear, setEndYear] = useState('');
     const [continentList, setContinentList] = useState([]);
 
-    // Fetch continent list
     useEffect(() => {
         axios.get(`${API_BASE_URL}/distinct-continents`)
             .then(response => setContinentList(response.data || []))
             .catch(err => console.error("Error fetching continent list:", err));
     }, []);
 
-    // Fetch stats for all metrics based on filters
     useEffect(() => {
         const fetchAllStats = async () => {
             setLoading(true);
@@ -37,7 +34,6 @@ function GlobalTopStats() {
             const newStats = {};
             const params = new URLSearchParams();
             if (continent) params.append('continent', continent);
-            // Add year params if implemented:
             // if (startYear) params.append('startYear', startYear);
             // if (endYear) params.append('endYear', endYear);
 
@@ -50,17 +46,16 @@ function GlobalTopStats() {
             } catch (err) {
                 console.error("Error fetching top stats:", err);
                 setError("Failed to load some or all top statistics.");
-                setStats({}); // Clear stats on error
+                setStats({});
             } finally {
                 setLoading(false);
             }
         };
 
         fetchAllStats();
-    }, [continent]); // Re-fetch when continent changes (add year filters here if implemented)
+    }, [continent]);
 
     const handleContinentChange = (event) => setContinent(event.target.value);
-    // Add handlers for year filters if implemented
 
     return (
         <div>
@@ -73,7 +68,6 @@ function GlobalTopStats() {
                         {continentList.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                 </div>
-                {/* Add Year filter inputs here if implemented */}
             </div>
 
             {loading && <p>Loading statistics...</p>}
@@ -99,7 +93,6 @@ function GlobalTopStats() {
                                                 <td>{index + 1}</td>
                                                 <td>{item.country_name}</td>
                                                 <td>{item[metric.key] ?? item[metric.key.toLowerCase()]}</td>
-                                                {/* Access calculated metric */}
                                             </tr>
                                         ))}
                                     </tbody>

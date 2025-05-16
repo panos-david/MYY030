@@ -1,18 +1,16 @@
--- Drop tables in reverse order of dependency if they exist
 DROP TABLE IF EXISTS penalty_shootouts;
 DROP TABLE IF EXISTS goals;
 DROP TABLE IF EXISTS former_names;
 DROP TABLE IF EXISTS matches;
 DROP TABLE IF EXISTS countries;
 
--- Create countries table first as others depend on it
 CREATE TABLE countries (
     country_id SERIAL PRIMARY KEY,
     iso VARCHAR(2),
     iso3 VARCHAR(3),
     iso_code INT,
     fips VARCHAR(2),
-    display_name VARCHAR(255) NOT NULL UNIQUE, -- Ensure display_name is unique
+    display_name VARCHAR(255) NOT NULL UNIQUE,
     official_name VARCHAR(255),
     capital VARCHAR(255),
     continent VARCHAR(50),
@@ -31,10 +29,10 @@ CREATE TABLE countries (
     lldc BOOLEAN,
     ldc BOOLEAN,
     area_sq_km INT,
-    population BIGINT -- Use BIGINT for potentially large populations
+    population BIGINT
 );
 
--- Create matches table with foreign keys and unique constraint
+
 CREATE TABLE matches (
     match_id SERIAL PRIMARY KEY,
     match_date DATE NOT NULL,
@@ -44,13 +42,11 @@ CREATE TABLE matches (
     away_score INT NOT NULL,
     tournament VARCHAR(255),
     city VARCHAR(255),
-    country_id INT REFERENCES countries(country_id), -- Host country
+    country_id INT REFERENCES countries(country_id), 
     neutral BOOLEAN NOT NULL,
-    -- Add constraint to prevent duplicate matches on the same date between the same teams
     CONSTRAINT unique_match UNIQUE (match_date, home_team_id, away_team_id)
 );
 
--- Create former_names table
 CREATE TABLE former_names (
     former_name_id SERIAL PRIMARY KEY,
     country_id INT NOT NULL REFERENCES countries(country_id),
@@ -59,28 +55,24 @@ CREATE TABLE former_names (
     end_date DATE
 );
 
--- Create goals table
 CREATE TABLE goals (
     goal_id SERIAL PRIMARY KEY,
     match_id INT NOT NULL REFERENCES matches(match_id),
-    team_id INT NOT NULL REFERENCES countries(country_id), -- Team that scored
+    team_id INT NOT NULL REFERENCES countries(country_id), 
     scorer VARCHAR(255),
     minute INT,
     own_goal BOOLEAN NOT NULL DEFAULT FALSE,
     penalty BOOLEAN NOT NULL DEFAULT FALSE
-    -- Optional: Add a unique constraint if needed, e.g., on (match_id, minute, scorer, team_id)
-    -- CONSTRAINT unique_goal UNIQUE (match_id, minute, scorer, team_id) -- Be careful with this, might be too strict
+
 );
 
--- Create penalty_shootouts table
 CREATE TABLE penalty_shootouts (
     shootout_id SERIAL PRIMARY KEY,
-    match_id INT NOT NULL UNIQUE REFERENCES matches(match_id), -- Each match has at most one shootout
+    match_id INT NOT NULL UNIQUE REFERENCES matches(match_id),
     winner_id INT NOT NULL REFERENCES countries(country_id),
-    first_shooter_id INT REFERENCES countries(country_id) -- Can be NULL if unknown
+    first_shooter_id INT REFERENCES countries(country_id)
 );
 
--- Optional: Add indexes for frequently queried columns
 CREATE INDEX idx_matches_date ON matches(match_date);
 CREATE INDEX idx_matches_home_team ON matches(home_team_id);
 CREATE INDEX idx_matches_away_team ON matches(away_team_id);

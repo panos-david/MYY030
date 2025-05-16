@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Adjust if needed
+const API_BASE_URL = 'http://localhost:3001/api';
 
 function ScorerSummaryChart() {
     const [data, setData] = useState([]);
@@ -14,15 +14,14 @@ function ScorerSummaryChart() {
     const [startYear, setStartYear] = useState('');
     const [endYear, setEndYear] = useState('');
     const [scorerFilter, setScorerFilter] = useState('');
-    const [scorerList, setScorerList] = useState([]); // For scorer dropdown
-    const [yearList, setYearList] = useState([]);     // For year dropdowns
+    const [scorerList, setScorerList] = useState([]);
+    const [yearList, setYearList] = useState([]);
 
-    // Fetch dropdown data
     useEffect(() => {
         axios.get(`${API_BASE_URL}/distinct-scorers`)
             .then(response => setScorerList(response.data || []))
             .catch(err => console.error("Error fetching scorer list:", err));
-        axios.get(`${API_BASE_URL}/distinct-scoring-years`) // Use scoring years for this view
+        axios.get(`${API_BASE_URL}/distinct-scoring-years`)
             .then(response => setYearList(response.data || []))
             .catch(err => console.error("Error fetching scoring year list:", err));
     }, []);
@@ -34,8 +33,8 @@ function ScorerSummaryChart() {
             sort: sortParam,
             limit: limit,
         });
-        if (startYear) params.append('startYear', startYear); // Filters first/last scoring year
-        if (endYear) params.append('endYear', endYear);     // Filters first/last scoring year
+        if (startYear) params.append('startYear', startYear);
+        if (endYear) params.append('endYear', endYear);
         if (scorerFilter) params.append('scorer_name', scorerFilter);
 
         axios.get(`${API_BASE_URL}/scorer-summary?${params.toString()}`)
@@ -89,8 +88,7 @@ function ScorerSummaryChart() {
                 .attr("y", d => y(d.scorer_name))
                 .attr("width", d => x(d[sortConfig.key]))
                 .attr("height", y.bandwidth())
-                .attr("fill", "#ff7f0e"); // Different color for scorers
-
+                .attr("fill", "#ff7f0e");
             svg.append("text")
                 .attr("text-anchor", "end")
                 .attr("x", width / 2 + margin.left)
@@ -121,7 +119,6 @@ function ScorerSummaryChart() {
             <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div>
                     <label>Scorer: </label>
-                    {/* Scorer Dropdown */}
                     <select value={scorerFilter} onChange={handleScorerFilterChange}>
                         <option value="">-- All Scorers --</option>
                         {scorerList.map(s => <option key={s} value={s}>{s}</option>)}
@@ -129,7 +126,6 @@ function ScorerSummaryChart() {
                 </div>
                 <div>
                     <label>Scoring Years: </label>
-                    {/* Year Dropdowns */}
                      <select value={startYear} onChange={handleStartYearChange}>
                          <option value="">From Year</option>
                          {yearList.map(y => <option key={y} value={y}>{y}</option>)}
@@ -159,7 +155,6 @@ function ScorerSummaryChart() {
             {loading && <p>Loading chart...</p>}
             {error && <p style={{ color: 'red' }}>{error}</p>}
             <svg ref={d3Container} width={600} height={400}></svg>
-             {/* Optional Table */}
              {data.length > 0 && !loading && (
                 <div style={{ marginTop: '20px' }}>
                     <h4>Details for Top {limit} Scorers ({sortConfig.key.replace(/_/g, ' ')})</h4>

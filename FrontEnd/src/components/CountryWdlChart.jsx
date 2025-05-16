@@ -2,20 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Ensure port is correct
+const API_BASE_URL = 'http://localhost:3001/api';
 
 function CountryWdlChart() {
     const [countryName, setCountryName] = useState('');
     const [startYear, setStartYear] = useState('');
     const [endYear, setEndYear] = useState('');
     const [countryList, setCountryList] = useState([]);
-    const [yearList, setYearList] = useState([]); // Use match years
+    const [yearList, setYearList] = useState([]);
     const [timelineData, setTimelineData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const d3Container = useRef(null);
 
-    // Fetch dropdown lists
     useEffect(() => {
         axios.get(`${API_BASE_URL}/distinct-countries`)
             .then(response => setCountryList(response.data || []))
@@ -25,12 +24,11 @@ function CountryWdlChart() {
             .catch(err => console.error("Error fetching match year list:", err));
     }, []);
 
-    // Fetch timeline data
     useEffect(() => {
         if (!countryName) {
             setTimelineData([]);
             setError(null);
-            return; // Don't fetch if no country is selected
+            return;
         }
 
         setLoading(true);
@@ -41,7 +39,6 @@ function CountryWdlChart() {
 
         axios.get(`${API_BASE_URL}/country-wdl-timeline?${params.toString()}`)
             .then(response => {
-                // Fill missing years with 0 W/D/L
                 const rawData = response.data.data || [];
                 const minYear = startYear ? parseInt(startYear) : (rawData.length > 0 ? d3.min(rawData, d => d.year) : null);
                 const maxYear = endYear ? parseInt(endYear) : (rawData.length > 0 ? d3.max(rawData, d => d.year) : null);
@@ -54,7 +51,7 @@ function CountryWdlChart() {
                     }
                     setTimelineData(filledData);
                 } else {
-                     setTimelineData(rawData.sort((a, b) => a.year - b.year)); // Sort if no range
+                     setTimelineData(rawData.sort((a, b) => a.year - b.year));
                 }
             })
             .catch(err => {
@@ -67,7 +64,6 @@ function CountryWdlChart() {
             });
     }, [countryName, startYear, endYear]);
 
-    // D3 Line Chart
     useEffect(() => {
         if (timelineData.length > 0 && d3Container.current) {
             const svg = d3.select(d3Container.current);
@@ -80,7 +76,6 @@ function CountryWdlChart() {
             const chart = svg.append("g")
                 .attr("transform", `translate(${margin.left},${margin.top})`);
 
-            // X axis - Year
             const x = d3.scaleLinear()
                 .domain(d3.extent(timelineData, d => d.year))
                 .range([0, width]);
@@ -88,7 +83,6 @@ function CountryWdlChart() {
                 .attr("transform", `translate(0, ${height})`)
                 .call(d3.axisBottom(x).tickFormat(d3.format("d")));
 
-            // Y axis - Count (Max of Wins, Draws, Losses)
             const yMax = d3.max(timelineData, d => Math.max(d.wins, d.draws, d.losses)) || 1;
             const y = d3.scaleLinear()
                 .domain([0, yMax])
@@ -96,17 +90,14 @@ function CountryWdlChart() {
             chart.append("g")
                 .call(d3.axisLeft(y));
 
-            // Line generators
             const lineWins = d3.line().x(d => x(d.year)).y(d => y(d.wins));
             const lineDraws = d3.line().x(d => x(d.year)).y(d => y(d.draws));
             const lineLosses = d3.line().x(d => x(d.year)).y(d => y(d.losses));
 
-            // Draw lines
             chart.append("path").datum(timelineData).attr("fill", "none").attr("stroke", "green").attr("stroke-width", 1.5).attr("d", lineWins);
             chart.append("path").datum(timelineData).attr("fill", "none").attr("stroke", "orange").attr("stroke-width", 1.5).attr("d", lineDraws);
             chart.append("path").datum(timelineData).attr("fill", "none").attr("stroke", "red").attr("stroke-width", 1.5).attr("d", lineLosses);
 
-            // Add Legend
             const legend = svg.append("g")
               .attr("font-family", "sans-serif")
               .attr("font-size", 10)
@@ -122,7 +113,6 @@ function CountryWdlChart() {
             legend.append("line").attr("x1", 0).attr("x2", 10).attr("y1", 40).attr("y2", 40).attr("stroke", "red").attr("stroke-width", 1.5);
             legend.append("text").attr("x", 15).attr("y", 40).text("Losses").attr("alignment-baseline", "middle");
 
-            // Add Axis Labels
             svg.append("text").attr("text-anchor", "middle").attr("x", margin.left + width / 2).attr("y", height + margin.top + 35).text("Year");
             svg.append("text").attr("text-anchor", "middle").attr("transform", "rotate(-90)").attr("y", margin.left - 35).attr("x", - (margin.top + height / 2)).text("Count");
 
@@ -168,7 +158,6 @@ function CountryWdlChart() {
                     {timelineData.length > 0 ? (
                         <>
                             <svg ref={d3Container} width={700} height={400}></svg>
-                            {/* Timeline Table */}
                             <div style={{ marginTop: '10px', maxHeight: '300px', overflowY: 'auto' }}>
                                 <h4>Yearly Results for {countryName}</h4>
                                 <table border="1" style={{ borderCollapse: 'collapse', width: '95%' }}>

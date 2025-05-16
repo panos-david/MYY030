@@ -1,55 +1,45 @@
--- Active: 1731590999447@@127.0.0.1@5434
-
--- Drop existing views if they exist (in reverse dependency order)
--- Drop views that depend on others first
 DROP VIEW IF EXISTS country_profile;
-DROP VIEW IF EXISTS scorer_team_activity; -- Depends on goals, matches, countries
-DROP VIEW IF EXISTS scorer_summary; -- Depends on goals, matches
-DROP VIEW IF EXISTS yearly_match_summary; -- Depends on matches, penalty_shootouts
-DROP VIEW IF EXISTS goal_timing_distribution; -- Depends on goals, matches
-DROP VIEW IF EXISTS head_to_head_stats; -- Depends on matches, countries
-DROP VIEW IF EXISTS team_tournament_performance; -- Depends on matches, countries
-DROP VIEW IF EXISTS goal_details; -- Depends on goals, matches, countries
-DROP VIEW IF EXISTS match_details; -- Depends on matches, countries
+DROP VIEW IF EXISTS scorer_team_activity;
+DROP VIEW IF EXISTS scorer_summary; 
+DROP VIEW IF EXISTS yearly_match_summary; 
+DROP VIEW IF EXISTS goal_timing_distribution; 
+DROP VIEW IF EXISTS head_to_head_stats; 
+DROP VIEW IF EXISTS team_tournament_performance; 
+DROP VIEW IF EXISTS goal_details; 
+DROP VIEW IF EXISTS match_details;
 
--- Drop views that are dependencies for country_profile
-DROP VIEW IF EXISTS country_activity_summary; -- Depends on matches, countries
-DROP VIEW IF EXISTS country_home_stats; -- Depends on matches
-DROP VIEW IF EXISTS country_away_stats; -- Depends on matches
-DROP VIEW IF EXISTS country_performance; -- Depends on matches, countries
+DROP VIEW IF EXISTS country_activity_summary; 
+DROP VIEW IF EXISTS country_home_stats; 
+DROP VIEW IF EXISTS country_away_stats; 
+DROP VIEW IF EXISTS country_performance;
 
--- Drop views that are dependencies for others (if any were missed above)
-DROP VIEW IF EXISTS tournament_summary; -- Depends on matches
-DROP VIEW IF EXISTS player_goals_yearly; -- Add drop for new view
+DROP VIEW IF EXISTS tournament_summary; 
+DROP VIEW IF EXISTS player_goals_yearly; 
 
--- Now recreate the views in the correct dependency order
 
--- View: Comprehensive Match Details
--- Combines match information with team (country) names and match location country.
 CREATE VIEW match_details AS
 SELECT
     m.match_id,
     m.match_date,
-    m.tournament, -- Tournament name directly from matches table
-    EXTRACT(YEAR FROM m.match_date) AS tournament_year, -- Extract year from date
-    ht.display_name AS home_team, -- Use display_name from countries table for team name
-    at.display_name AS away_team, -- Use display_name from countries table for team name
+    m.tournament, 
+    EXTRACT(YEAR FROM m.match_date) AS tournament_year, 
+    ht.display_name AS home_team, 
+    at.display_name AS away_team,
     m.home_score,
     m.away_score,
     m.city AS match_city,
-    mc.display_name AS match_country, -- Country where the match was played
+    mc.display_name AS match_country,
     m.neutral
 FROM
     matches m
-LEFT JOIN -- Use LEFT JOIN in case country IDs are missing
+LEFT JOIN 
     countries ht ON m.home_team_id = ht.country_id
 LEFT JOIN
     countries at ON m.away_team_id = at.country_id
 LEFT JOIN
     countries mc ON m.country_id = mc.country_id;
 
--- View: Detailed Goal Information
--- Links goals to the scorer name (VARCHAR), the match, and the scoring team (country).
+
 CREATE VIEW goal_details AS
 SELECT
     g.goal_id,
@@ -57,31 +47,28 @@ SELECT
     m.tournament,
     EXTRACT(YEAR FROM m.match_date) AS tournament_year,
     m.match_date,
-    g.scorer AS scorer_name, -- Scorer name directly from goals table
+    g.scorer AS scorer_name, 
     scoring_team.display_name AS scoring_team,
     conceding_team.display_name AS team_conceded,
     g.minute AS goal_minute,
-    g.penalty AS is_penalty, -- Use actual column name
-    g.own_goal AS is_own_goal -- Use actual column name
+    g.penalty AS is_penalty,
+    g.own_goal AS is_own_goal 
 FROM
     goals g
 JOIN
     matches m ON g.match_id = m.match_id
 LEFT JOIN
     countries scoring_team ON g.team_id = scoring_team.country_id
-LEFT JOIN -- Determine the team conceded against by joining matches and comparing team IDs
+LEFT JOIN
     countries conceding_team ON (m.home_team_id = conceding_team.country_id AND g.team_id = m.away_team_id)
                              OR (m.away_team_id = conceding_team.country_id AND g.team_id = m.home_team_id);
 
 
--- View: Tournament Summary (Grouped by tournament name and year)
--- Aggregates key statistics for each tournament occurrence.
+
 CREATE VIEW tournament_summary AS
 SELECT
     m.tournament,
     EXTRACT(YEAR FROM m.match_date) AS year,
-    -- Cannot determine a single host country reliably from this schema per tournament
-    -- mc.display_name AS host_country, -- This would only show countries where matches were played
     COUNT(DISTINCT m.match_id) AS total_matches,
     SUM(m.home_score + m.away_score) AS total_goals,
     AVG(m.home_score + m.away_score) AS avg_goals_per_match,
@@ -89,25 +76,23 @@ SELECT
     COUNT(DISTINCT CASE WHEN m.home_score = m.away_score THEN m.match_id END) AS draw_matches
 FROM
     matches m
--- LEFT JOIN countries mc ON m.country_id = mc.country_id -- Join if you want match location countries
 GROUP BY
     m.tournament, EXTRACT(YEAR FROM m.match_date)
 ORDER BY
     year DESC, m.tournament;
 
 
--- View: Country Performance Summary (Treating countries as teams)
--- Aggregates performance statistics for each country across all matches.
-CREATE OR REPLACE VIEW country_performance AS -- Use CREATE OR REPLACE
+
+CREATE OR REPLACE VIEW country_performance AS 
 WITH MatchTeams AS (
-    -- Home Team Stats
+
     SELECT match_id, home_team_id AS team_country_id, home_score AS goals_for, away_score AS goals_against,
            CASE WHEN home_score > away_score THEN 1 ELSE 0 END AS win,
            CASE WHEN home_score = away_score THEN 1 ELSE 0 END AS draw,
            CASE WHEN home_score < away_score THEN 1 ELSE 0 END AS loss
     FROM matches WHERE home_team_id IS NOT NULL
     UNION ALL
-    -- Away Team Stats
+
     SELECT match_id, away_team_id AS team_country_id, away_score AS goals_for, home_score AS goals_against,
            CASE WHEN away_score > home_score THEN 1 ELSE 0 END AS win,
            CASE WHEN away_score = home_score THEN 1 ELSE 0 END AS draw,
@@ -116,9 +101,9 @@ WITH MatchTeams AS (
 )
 SELECT
     cy.country_id,
-    cy.display_name AS country_name, -- Use display_name
-    COUNT(DISTINCT mt.match_id) AS matches_played, -- Corrected: Count distinct matches
-    SUM(mt.win)::INT AS wins, -- Cast to INT for clearer output
+    cy.display_name AS country_name, 
+    COUNT(DISTINCT mt.match_id) AS matches_played, s
+    SUM(mt.win)::INT AS wins,
     SUM(mt.draw)::INT AS draws,
     SUM(mt.loss)::INT AS losses,
     SUM(mt.goals_for)::INT AS goals_scored,
@@ -134,11 +119,9 @@ ORDER BY
     cy.display_name;
 
 
--- View: Team Performance in Tournaments (Treating countries as teams)
--- Shows detailed performance of each country within each tournament occurrence.
+
 CREATE VIEW team_tournament_performance AS
 WITH TeamMatchStats AS (
-    -- Home Team Stats
     SELECT
         m.tournament,
         EXTRACT(YEAR FROM m.match_date) AS year,
@@ -151,7 +134,7 @@ WITH TeamMatchStats AS (
         m.away_score AS goals_against
     FROM matches m WHERE m.home_team_id IS NOT NULL
     UNION ALL
-    -- Away Team Stats
+
     SELECT
         m.tournament,
         EXTRACT(YEAR FROM m.match_date) AS year,
@@ -167,7 +150,7 @@ WITH TeamMatchStats AS (
 SELECT
     tms.tournament,
     tms.year AS tournament_year,
-    cy.display_name AS team_name, -- Use country display name as team name
+    cy.display_name AS team_name,
     SUM(tms.played)::INT AS matches_played,
     SUM(tms.win)::INT AS wins,
     SUM(tms.draw)::INT AS draws,
@@ -185,16 +168,15 @@ ORDER BY
     tms.year DESC, tms.tournament, SUM(tms.win) DESC, (SUM(tms.goals_for) - SUM(tms.goals_against)) DESC;
 
 
--- View: Head-to-Head Match Results
--- Provides results for matches between any two specific teams (countries).
+
 CREATE VIEW head_to_head_stats AS
 SELECT
     m.match_id,
     m.tournament,
     EXTRACT(YEAR FROM m.match_date) AS tournament_year,
     m.match_date,
-    ht.display_name AS team1_name, -- Use country display name
-    at.display_name AS team2_name, -- Use country display name
+    ht.display_name AS team1_name,
+    at.display_name AS team2_name, 
     m.home_score AS team1_score,
     m.away_score AS team2_score,
     CASE
@@ -209,11 +191,9 @@ LEFT JOIN
 LEFT JOIN
     countries at ON m.away_team_id = at.country_id
 WHERE
-    ht.country_id IS NOT NULL AND at.country_id IS NOT NULL; -- Only include matches where both teams are known
+    ht.country_id IS NOT NULL AND at.country_id IS NOT NULL; 
 
 
--- View: Goal Timing Distribution
--- Categorizes goals based on the minute they were scored.
 CREATE VIEW goal_timing_distribution AS
 SELECT
     g.goal_id,
@@ -225,26 +205,19 @@ SELECT
         WHEN g.minute BETWEEN 1 AND 15 THEN '01-15 min'
         WHEN g.minute BETWEEN 16 AND 30 THEN '16-30 min'
         WHEN g.minute BETWEEN 31 AND 45 THEN '31-45 min'
-        -- Assuming minute > 45 in first half is injury time
-        WHEN g.minute > 45 AND g.minute <= 50 THEN '45+ min (1st Half)' -- Adjust range as needed
-        WHEN g.minute BETWEEN 46 AND 60 THEN '46-60 min' -- Regular second half start
+        WHEN g.minute > 45 AND g.minute <= 50 THEN '45+ min (1st Half)'
+        WHEN g.minute BETWEEN 46 AND 60 THEN '46-60 min'
         WHEN g.minute BETWEEN 61 AND 75 THEN '61-75 min'
         WHEN g.minute BETWEEN 76 AND 90 THEN '76-90 min'
-         -- Assuming minute > 90 is injury time or extra time
         WHEN g.minute > 90 THEN '90+ min'
-        ELSE 'Other/Unknown' -- Handle null or zero minutes if necessary
+        ELSE 'Other/Unknown'
     END AS time_segment
 FROM
     goals g
 JOIN
     matches m ON g.match_id = m.match_id
-WHERE g.minute IS NOT NULL; -- Exclude goals with unknown timing
--- Note: Aggregation (COUNT per segment) would be done in the backend query.
+WHERE g.minute IS NOT NULL; 
 
--- NEW VIEWS START HERE --
-
--- View: Country Activity Summary
--- Shows the first and last year a country participated and the total span/distinct years.
 CREATE VIEW country_activity_summary AS
 WITH CountryYears AS (
     SELECT home_team_id AS country_id, EXTRACT(YEAR FROM match_date) AS year FROM matches WHERE home_team_id IS NOT NULL
@@ -266,8 +239,7 @@ GROUP BY
     cy.country_id, c.display_name;
 
 
--- View: Country Home Statistics
--- Aggregates W/D/L/Goals specifically for home matches.
+
 CREATE VIEW country_home_stats AS
 SELECT
     m.home_team_id AS country_id,
@@ -283,8 +255,6 @@ WHERE m.home_team_id IS NOT NULL
 GROUP BY
     m.home_team_id;
 
--- View: Country Away Statistics
--- Aggregates W/D/L/Goals specifically for away matches.
 CREATE VIEW country_away_stats AS
 SELECT
     m.away_team_id AS country_id,
@@ -301,10 +271,8 @@ GROUP BY
     m.away_team_id;
 
 
--- View: Detailed Country Profile
--- Combines overall performance, home/away stats, activity years, and calculates score.
-CREATE OR REPLACE VIEW country_profile AS -- Use CREATE OR REPLACE
-SELECT DISTINCT -- Add DISTINCT back to prevent duplicate rows
+CREATE OR REPLACE VIEW country_profile AS 
+SELECT DISTINCT
     cp.country_id,
     cp.country_name,
     cas.first_year_active,
@@ -318,7 +286,7 @@ SELECT DISTINCT -- Add DISTINCT back to prevent duplicate rows
     cp.goals_scored,
     cp.goals_conceded,
     cp.goal_difference,
-    (cp.wins * 3 + cp.draws * 1) AS total_score, -- Calculated score (3 points/win, 1 point/draw)
+    (cp.wins * 3 + cp.draws * 1) AS total_score,
     COALESCE(chs.home_played, 0) AS home_played,
     COALESCE(chs.home_wins, 0) AS home_wins,
     COALESCE(chs.home_draws, 0) AS home_draws,
@@ -331,7 +299,6 @@ SELECT DISTINCT -- Add DISTINCT back to prevent duplicate rows
     COALESCE(caws.away_losses, 0) AS away_losses,
     COALESCE(caws.away_goals_for, 0) AS away_goals_for,
     COALESCE(caws.away_goals_against, 0) AS away_goals_against,
-    -- Ratios for ranking (can be calculated here or in backend)
     CASE WHEN cas.distinct_years_played > 0 THEN cp.wins::FLOAT / cas.distinct_years_played ELSE 0 END AS wins_per_active_year,
     CASE WHEN cas.distinct_years_played > 0 THEN (cp.wins * 3 + cp.draws * 1)::FLOAT / cas.distinct_years_played ELSE 0 END AS score_per_active_year
 FROM
@@ -344,39 +311,35 @@ LEFT JOIN
     country_away_stats caws ON cp.country_id = caws.country_id;
 
 
--- View: Yearly Match Summary
--- Provides counts of total matches, draws, and matches decided by penalty shootouts per year.
--- Added continent of match location for filtering.
-DROP VIEW IF EXISTS yearly_match_summary; -- Drop before recreating
+
+DROP VIEW IF EXISTS yearly_match_summary;
 CREATE VIEW yearly_match_summary AS
 SELECT
     EXTRACT(YEAR FROM m.match_date) AS year,
-    mc.continent, -- Continent where the match was played
+    mc.continent, 
     COUNT(m.match_id)::INT AS total_matches,
     SUM(CASE WHEN m.home_score = m.away_score THEN 1 ELSE 0 END)::INT AS draw_matches,
-    COUNT(ps.shootout_id)::INT AS penalty_shootout_matches -- Count matches linked to shootouts
+    COUNT(ps.shootout_id)::INT AS penalty_shootout_matches 
 FROM
     matches m
 LEFT JOIN
     penalty_shootouts ps ON m.match_id = ps.match_id
-LEFT JOIN -- Join to get the continent of the match location
+LEFT JOIN 
     countries mc ON m.country_id = mc.country_id
-WHERE mc.continent IS NOT NULL -- Optionally filter out matches with unknown location continent
+WHERE mc.continent IS NOT NULL
 GROUP BY
     EXTRACT(YEAR FROM m.match_date), mc.continent
 ORDER BY
     year DESC, mc.continent;
 
 
--- View: Scorer Summary (Simplified)
--- Provides total goals, first/last year scoring, and max goals in a single match per scorer.
-CREATE OR REPLACE VIEW scorer_summary AS -- Use CREATE OR REPLACE
+
+CREATE OR REPLACE VIEW scorer_summary AS 
 SELECT
     g.scorer AS scorer_name,
     COUNT(g.goal_id)::INT AS total_goals,
     MIN(EXTRACT(YEAR FROM m.match_date))::INT AS first_scoring_year,
     MAX(EXTRACT(YEAR FROM m.match_date))::INT AS last_scoring_year,
-    -- Subquery to find max goals in any single match by this scorer
     MAX((
         SELECT COUNT(*)
         FROM goals g2
@@ -392,9 +355,6 @@ GROUP BY
 ORDER BY
     total_goals DESC;
 
-
--- View: Scorer Team Activity (Helper for complex ratio)
--- Shows goals scored by a scorer for a specific team (country) and the years they scored for that team.
 CREATE VIEW scorer_team_activity AS
 SELECT
     g.scorer AS scorer_name,
@@ -415,8 +375,7 @@ GROUP BY
 ORDER BY
     g.scorer, goals_for_team DESC;
 
--- View: Player Goals Yearly (Used for Player Profile Timeline)
--- Aggregates goals scored by each player per year.
+
 CREATE VIEW player_goals_yearly AS
 SELECT
     g.scorer AS scorer_name,
@@ -427,7 +386,7 @@ FROM
 JOIN
     matches m ON g.match_id = m.match_id
 WHERE
-    g.scorer IS NOT NULL AND g.own_goal = FALSE -- Exclude own goals and null scorers
+    g.scorer IS NOT NULL AND g.own_goal = FALSE
 GROUP BY
     g.scorer, EXTRACT(YEAR FROM m.match_date)
 ORDER BY

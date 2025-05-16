@@ -2,14 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Ensure port is correct
-
+const API_BASE_URL = 'http://localhost:3001/api'; 
 function PlayerProfile() {
     const [scorerName, setScorerName] = useState('');
     const [startYear, setStartYear] = useState('');
     const [endYear, setEndYear] = useState('');
     const [scorerList, setScorerList] = useState([]);
-    const [yearList, setYearList] = useState([]); // Use scoring years
+    const [yearList, setYearList] = useState([]);
     const [timelineData, setTimelineData] = useState([]);
     const [summaryData, setSummaryData] = useState(null);
     const [loadingTimeline, setLoadingTimeline] = useState(false);
@@ -17,7 +16,6 @@ function PlayerProfile() {
     const [error, setError] = useState(null);
     const d3Container = useRef(null);
 
-    // Fetch dropdown lists
     useEffect(() => {
         axios.get(`${API_BASE_URL}/distinct-scorers`)
             .then(response => setScorerList(response.data || []))
@@ -27,13 +25,12 @@ function PlayerProfile() {
             .catch(err => console.error("Error fetching scoring year list:", err));
     }, []);
 
-    // Fetch timeline and summary data when scorer or year range changes
     useEffect(() => {
         if (!scorerName) {
             setTimelineData([]);
             setSummaryData(null);
             setError(null);
-            return; // Don't fetch if no scorer is selected
+            return;
         }
 
         const fetchPlayerData = async () => {
@@ -45,15 +42,13 @@ function PlayerProfile() {
             if (startYear) timelineParams.append('startYear', startYear);
             if (endYear) timelineParams.append('endYear', endYear);
 
-            const summaryParams = new URLSearchParams({ scorer_name: scorerName, limit: 1 }); // Fetch only the selected scorer
-
+            const summaryParams = new URLSearchParams({ scorer_name: scorerName, limit: 1 }); 
             try {
                 const [timelineRes, summaryRes] = await Promise.all([
                     axios.get(`${API_BASE_URL}/player-goal-timeline?${timelineParams.toString()}`),
                     axios.get(`${API_BASE_URL}/scorer-summary?${summaryParams.toString()}`)
                 ]);
 
-                // Process timeline data - fill missing years with 0 goals
                 const rawTimeline = timelineRes.data.data || [];
                 const minYear = startYear ? parseInt(startYear) : (rawTimeline.length > 0 ? d3.min(rawTimeline, d => d.year) : null);
                 const maxYear = endYear ? parseInt(endYear) : (rawTimeline.length > 0 ? d3.max(rawTimeline, d => d.year) : null);
@@ -66,11 +61,11 @@ function PlayerProfile() {
                     }
                     setTimelineData(filledTimeline);
                 } else {
-                    setTimelineData(rawTimeline.sort((a, b) => a.year - b.year)); // Sort if no range given
+                    setTimelineData(rawTimeline.sort((a, b) => a.year - b.year));
                 }
 
 
-                setSummaryData(summaryRes.data.data?.[0] || null); // Get the first (only) result
+                setSummaryData(summaryRes.data.data?.[0] || null);
 
             } catch (err) {
                 console.error("Error fetching player data:", err);
@@ -86,7 +81,6 @@ function PlayerProfile() {
         fetchPlayerData();
     }, [scorerName, startYear, endYear]);
 
-    // D3 Line Chart for Goal Timeline
     useEffect(() => {
         if (timelineData.length > 0 && d3Container.current) {
             const svg = d3.select(d3Container.current);
@@ -99,27 +93,23 @@ function PlayerProfile() {
             const chart = svg.append("g")
                 .attr("transform", `translate(${margin.left},${margin.top})`);
 
-            // X axis - Year (Linear scale for timeline)
             const x = d3.scaleLinear()
                 .domain(d3.extent(timelineData, d => d.year))
                 .range([0, width]);
             chart.append("g")
                 .attr("transform", `translate(0, ${height})`)
-                .call(d3.axisBottom(x).tickFormat(d3.format("d"))); // Format as integer
+                .call(d3.axisBottom(x).tickFormat(d3.format("d")));
 
-            // Y axis - Goals Scored
             const y = d3.scaleLinear()
                 .domain([0, d3.max(timelineData, d => d.goals_scored) || 1])
                 .range([height, 0]);
             chart.append("g")
                 .call(d3.axisLeft(y));
 
-            // Line generator
             const line = d3.line()
                 .x(d => x(d.year))
                 .y(d => y(d.goals_scored));
 
-            // Draw the line
             chart.append("path")
                 .datum(timelineData)
                 .attr("fill", "none")
@@ -127,7 +117,6 @@ function PlayerProfile() {
                 .attr("stroke-width", 1.5)
                 .attr("d", line);
 
-            // Add points
             chart.selectAll("dot")
                 .data(timelineData)
                 .enter().append("circle")
@@ -136,7 +125,6 @@ function PlayerProfile() {
                 .attr("r", 3)
                 .attr("fill", "steelblue");
 
-            // Add Axis Labels
             svg.append("text")
                 .attr("text-anchor", "middle")
                 .attr("x", margin.left + width / 2)
@@ -151,10 +139,9 @@ function PlayerProfile() {
                 .text("Goals Scored");
 
         } else if (d3Container.current) {
-            // Clear SVG if no data
             d3.select(d3Container.current).selectAll("*").remove();
         }
-    }, [timelineData]); // Re-render chart when timelineData changes
+    }, [timelineData]);
 
     const handleScorerChange = (event) => setScorerName(event.target.value);
     const handleStartYearChange = (event) => setStartYear(event.target.value);
@@ -192,7 +179,6 @@ function PlayerProfile() {
 
             {!isLoading && !error && scorerName && (
                 <>
-                    {/* Summary Section */}
                     {summaryData ? (
                         <div style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc' }}>
                             <h4>{summaryData.scorer_name} - Summary</h4>
@@ -204,12 +190,10 @@ function PlayerProfile() {
                         <p>No summary data available for this player.</p>
                     )}
 
-                    {/* Timeline Chart Section */}
                     <h4>Goal Timeline ({startYear || 'First'} - {endYear || 'Last'})</h4>
                     {timelineData.length > 0 ? (
                          <>
                             <svg ref={d3Container} width={600} height={300}></svg>
-                            {/* Timeline Table */}
                             <div style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto' }}>
                                 <table border="1" style={{ borderCollapse: 'collapse', width: '95%' }}>
                                     <thead>

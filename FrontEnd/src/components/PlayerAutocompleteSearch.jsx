@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import debounce from 'lodash.debounce'; // Import debounce
+import debounce from 'lodash.debounce';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
@@ -11,7 +11,6 @@ function PlayerAutocompleteSearch() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Fetch all scorers once on mount
     useEffect(() => {
         setLoading(true);
         axios.get(`${API_BASE_URL}/distinct-scorers`)
@@ -27,7 +26,6 @@ function PlayerAutocompleteSearch() {
             .finally(() => setLoading(false));
     }, []);
 
-    // Debounced function to filter suggestions
     const debouncedFilterSuggestions = useCallback(
         debounce((value) => {
             if (!value) {
@@ -36,10 +34,10 @@ function PlayerAutocompleteSearch() {
             }
             const filtered = allScorers
                 .filter(scorer => scorer.toLowerCase().includes(value.toLowerCase()))
-                .slice(0, 10); // Limit suggestions
+                .slice(0, 10);
             setSuggestions(filtered);
         }, 300), // 300ms debounce delay
-        [allScorers] // Dependency: re-create if allScorers changes
+        [allScorers]
     );
 
     const handleInputChange = (event) => {
@@ -51,8 +49,6 @@ function PlayerAutocompleteSearch() {
     const handleSuggestionClick = (scorer) => {
         setInputValue(scorer);
         setSuggestions([]);
-        // Optional: Trigger search in PlayerGoalSearch component if needed
-        // This requires lifting state up or using context/global state manager
         console.log(`Selected scorer: ${scorer}`);
     };
 
@@ -99,8 +95,6 @@ function PlayerAutocompleteSearch() {
                     </ul>
                 )}
             </div>
-             {/* Display selected scorer (optional) */}
-             {/* {inputValue && suggestions.length === 0 && <p>Selected: {inputValue}</p>} */}
         </div>
     );
 }

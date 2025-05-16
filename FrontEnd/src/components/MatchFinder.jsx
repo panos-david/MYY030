@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Import useEffect
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:3001/api';
@@ -21,31 +21,26 @@ function MatchFinder() {
     const [currentPage, setCurrentPage] = useState(1);
     const [countryList, setCountryList] = useState([]);
     const [tournamentList, setTournamentList] = useState([]);
-    const [cityList, setCityList] = useState([]); // For city dropdown
-    const [yearList, setYearList] = useState([]); // For year dropdowns
+    const [cityList, setCityList] = useState([]); 
+    const [yearList, setYearList] = useState([]);
 
-    // Fetch distinct values for dropdowns
     useEffect(() => {
-        // Fetch Countries
         axios.get(`${API_BASE_URL}/distinct-countries`)
             .then(response => setCountryList(response.data || []))
             .catch(err => console.error("Error fetching country list:", err));
 
-        // Fetch Tournaments
         axios.get(`${API_BASE_URL}/distinct-tournaments`)
             .then(response => setTournamentList(response.data || []))
             .catch(err => console.error("Error fetching tournament list:", err));
 
-        // Fetch Cities
         axios.get(`${API_BASE_URL}/distinct-cities`)
             .then(response => setCityList(response.data || []))
             .catch(err => console.error("Error fetching city list:", err));
 
-        // Fetch Match Years
         axios.get(`${API_BASE_URL}/distinct-match-years`)
             .then(response => setYearList(response.data || []))
             .catch(err => console.error("Error fetching match year list:", err));
-    }, []); // Fetch only once
+    }, []);
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -57,9 +52,8 @@ function MatchFinder() {
         const params = new URLSearchParams({
             limit: pagination.limit,
             offset: offset,
-            sort: 'match_date:desc' // Example sort
+            sort: 'match_date:desc'
         });
-        // Add non-empty filters to params
         for (const key in filters) {
             if (filters[key]) {
                 params.append(key, filters[key]);
@@ -85,7 +79,7 @@ function MatchFinder() {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        fetchMatches(1); // Fetch first page on new search
+        fetchMatches(1); 
     };
 
      const handlePageChange = (newPage) => {
@@ -94,7 +88,6 @@ function MatchFinder() {
         }
     };
 
-    // Ensure we only call fetchMatches once when needed, not multiple times
     useEffect(() => {
         // fetchMatches or set up logic so it's not called repeatedly
     }, []);
@@ -103,27 +96,22 @@ function MatchFinder() {
         <div>
             <h3>Match Finder</h3>
             <form onSubmit={handleSearch} style={{ marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                {/* Team Dropdown (Generic) */}
                 <select name="team" value={filters.team} onChange={handleFilterChange}>
                     <option value="">-- Team (Home or Away) --</option>
                     {countryList.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-                 {/* Home Team Dropdown */}
                 <select name="homeTeam" value={filters.homeTeam} onChange={handleFilterChange}>
                     <option value="">-- Home Team --</option>
                     {countryList.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-                 {/* Away Team Dropdown */}
                 <select name="awayTeam" value={filters.awayTeam} onChange={handleFilterChange}>
                     <option value="">-- Away Team --</option>
                     {countryList.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-                 {/* Tournament Dropdown */}
                 <select name="tournament" value={filters.tournament} onChange={handleFilterChange}>
                     <option value="">-- Tournament --</option>
                     {tournamentList.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
-                {/* Year Dropdowns */}
                 <select name="startYear" value={filters.startYear} onChange={handleFilterChange}>
                      <option value="">From Year</option>
                      {yearList.map(y => <option key={y} value={y}>{y}</option>)}
@@ -132,12 +120,10 @@ function MatchFinder() {
                      <option value="">To Year</option>
                      {yearList.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
-                {/* City Dropdown */}
                 <select name="city" value={filters.city} onChange={handleFilterChange}>
                     <option value="">-- All Cities --</option>
                     {cityList.map(city => <option key={city} value={city}>{city}</option>)}
                 </select>
-                 {/* Country Dropdown (Match Location) */}
                  <select name="country" value={filters.country} onChange={handleFilterChange}>
                     <option value="">-- Match Country --</option>
                     {countryList.map(c => <option key={c} value={c}>{c}</option>)}
@@ -152,7 +138,6 @@ function MatchFinder() {
             {matches.length > 0 && !loading && (
                  <div>
                     <h4>Matches Found ({pagination.totalItems})</h4>
-                     {/* Pagination Controls */}
                      <div style={{ margin: '10px 0' }}>
                         <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1}>Previous</button>
                         <span> Page {currentPage} of {pagination.totalPages} </span>
@@ -173,7 +158,7 @@ function MatchFinder() {
                         </thead>
                         <tbody>
                             {matches.map((match, idx) => (
-                                // Render each match once, without repeating
+                                // Render 
                                 <tr key={idx}>
                                     <td>{new Date(match.match_date).toLocaleDateString()}</td>
                                     <td>{match.tournament}</td>
@@ -187,7 +172,6 @@ function MatchFinder() {
                             ))}
                         </tbody>
                     </table>
-                     {/* Pagination Controls */}
                      <div style={{ margin: '10px 0' }}>
                         <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1}>Previous</button>
                         <span> Page {currentPage} of {pagination.totalPages} </span>

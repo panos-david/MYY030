@@ -33,7 +33,6 @@ def clean_countries(path):
     df['Area_SqKm'] = df['Area_SqKm'].fillna(0).astype(int)
     df['Population'] = df['Population'].fillna(0).astype(int)
 
-    # Mapping from CSV to DB column names
     column_mapping = {
         'ISO': 'iso',
         'ISO3': 'iso3',
@@ -64,7 +63,6 @@ def clean_countries(path):
 
 def clean_former_names(path):
     df = pd.read_csv(path, encoding='ISO-8859-1')
-    # Rename columns to prepare for mapping and insertion
     df = df.rename(columns={
         'current': 'current_country_name',
         'former': 'former_name'
@@ -168,7 +166,6 @@ def insert_to_postgres(df, table_name, conn_params, allowed_columns=None):
     cols_to_insert = allowed_columns if allowed_columns else df.columns
     df_insert = df[[col for col in cols_to_insert if col in df.columns]].copy()
 
-    # Convert numpy/pandas types to standard Python types
     for col in df_insert.columns:
         if df_insert[col].dtype in [np.int64, np.int32, np.int16, np.int8]:
             df_insert[col] = df_insert[col].apply(lambda x: int(x) if pd.notna(x) else None)
@@ -238,12 +235,10 @@ def report_virtual_countries(conn_params):
 
 
 if __name__ == "__main__":
-    # Paths
     data_path = "./"
     quarantine_path = os.path.join(data_path, "quarantine")
     os.makedirs(quarantine_path, exist_ok=True)
 
-    # 1. Load and clean CSV data
     print("🔄 Loading and cleaning data...")
     countries_raw = clean_countries(os.path.join(data_path, "countries.csv"))
     former_names_raw = clean_former_names(os.path.join(data_path, "former_names.csv"))
@@ -252,7 +247,6 @@ if __name__ == "__main__":
     results_raw = clean_results(os.path.join(data_path, "results.csv"))
     print("✅ Data loaded and cleaned.")
 
-    # 2. Identify teams and add virtual entries
     print("\n🔄 Identifying teams/countries and adding virtual entries...")
     results_teams = set(results_raw['home_team']).union(results_raw['away_team']).union(results_raw['country'])
     goalscorer_teams = set(goalscorers_raw['team'])
@@ -265,10 +259,8 @@ if __name__ == "__main__":
     countries_processed = add_virtual_countries(countries_raw, all_teams)
     print(f"Total countries including virtual: {len(countries_processed)}")
 
-    # 3. Optional consistency check
     check_consistency(countries_processed, results_raw, goalscorers_raw, shootouts_raw, former_names_raw)
 
-    # 4. Database connection info
     conn_info = {
         'host': 'localhost',
         'port': 5432,
@@ -277,12 +269,10 @@ if __name__ == "__main__":
         'password': 'root'
     }
 
-    # 5. Truncate all target tables before inserting to avoid duplicates
     print("\n🔄 Truncating all tables to avoid duplicates...")
     truncate_all(conn_info)
     print("✅ Tables truncated.")
 
-    # 6. Insert Countries
     print("\n🔄 Inserting countries...")
     allowed_country_cols = [
         "iso", "iso3", "iso_code", "fips", "display_name", "official_name", "capital",
@@ -306,7 +296,6 @@ if __name__ == "__main__":
     country_id_map['Unknown'] = None
     print(f"✅ Fetched {len(country_id_map)-1} country IDs (+1 placeholder).")
 
-    # 7. Insert Former Names
     print("\n🔄 Processing and inserting former names...")
     former_names_to_insert = former_names_raw.copy()
     former_names_to_insert['country_id'] = former_names_to_insert['current_country_name'].map(country_id_map)
@@ -322,7 +311,6 @@ if __name__ == "__main__":
     insert_to_postgres(former_names_final, 'former_names', conn_info)
     print("✅ Former names inserted.")
 
-    # 8. Insert Matches
     print("\n🔄 Processing and inserting matches...")
     matches_to_insert = results_raw.copy()
     matches_to_insert['home_team_id'] = matches_to_insert['home_team'].map(country_id_map)
@@ -345,7 +333,6 @@ if __name__ == "__main__":
     ]
     matches_final = matches_final[match_cols_for_db]
 
-    # Remove duplicate matches based on (date, home_team_id, away_team_id)
     initial_match_count = len(matches_final)
     matches_final = matches_final.drop_duplicates(subset=['match_date', 'home_team_id', 'away_team_id'])
     if len(matches_final) < initial_match_count:
@@ -354,11 +341,9 @@ if __name__ == "__main__":
     insert_to_postgres(matches_final, 'matches', conn_info)
     print("✅ Matches inserted.")
 
-    # 9. Fetch Match IDs for mapping
     print("\n🔄 Fetching match IDs for mapping goals and shootouts...")
     match_id_map = get_match_id_map(conn_info)
 
-    # 10. Insert Goals
     print("\n🔄 Processing and inserting goals...")
     goals_to_insert = goalscorers_raw.copy()
     goals_to_insert['match_key'] = list(zip(goals_to_insert['date'], goals_to_insert['home_team'], goals_to_insert['away_team']))
@@ -385,7 +370,6 @@ if __name__ == "__main__":
     insert_to_postgres(goals_final, 'goals', conn_info)
     print("✅ Goals inserted.")
 
-    # 11. Insert Shootouts
     print("\n🔄 Processing and inserting penalty shootouts...")
     shootouts_to_insert = shootouts_raw.copy()
     shootouts_to_insert['match_key'] = list(zip(shootouts_to_insert['date'], shootouts_to_insert['home_team'], shootouts_to_insert['away_team']))
@@ -422,7 +406,6 @@ if __name__ == "__main__":
     insert_to_postgres(shootouts_final, 'penalty_shootouts', conn_info)
     print("✅ Penalty shootouts inserted.")
 
-    # 12. Report Unrecognized/Virtual Countries
     report_virtual_countries(conn_info)
 
     print("\n🎉 Database population complete.")

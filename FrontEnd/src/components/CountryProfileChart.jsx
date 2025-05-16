@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
 
-const API_BASE_URL = 'http://localhost:3001/api'; // Adjust if needed
+const API_BASE_URL = 'http://localhost:3001/api';
 
 function CountryProfileChart() {
     const [data, setData] = useState([]);
@@ -14,15 +14,14 @@ function CountryProfileChart() {
     const [startYear, setStartYear] = useState('');
     const [endYear, setEndYear] = useState('');
     const [countryFilter, setCountryFilter] = useState('');
-    const [countryList, setCountryList] = useState([]); // For country dropdown
-    const [yearList, setYearList] = useState([]);       // For year dropdowns
+    const [countryList, setCountryList] = useState([]); 
+    const [yearList, setYearList] = useState([]);
 
-    // Fetch dropdown data
     useEffect(() => {
         axios.get(`${API_BASE_URL}/distinct-countries`)
             .then(response => setCountryList(response.data || []))
             .catch(err => console.error("Error fetching country list:", err));
-        axios.get(`${API_BASE_URL}/distinct-active-years`) // Use active years for this view
+        axios.get(`${API_BASE_URL}/distinct-active-years`)
             .then(response => setYearList(response.data || []))
             .catch(err => console.error("Error fetching active year list:", err));
     }, []);
@@ -30,18 +29,17 @@ function CountryProfileChart() {
     useEffect(() => {
         setLoading(true);
         const sortParam = `${sortConfig.key}:${sortConfig.direction}`;
-        // Build query parameters including filters
         const params = new URLSearchParams({
             sort: sortParam,
             limit: limit,
         });
         if (startYear) params.append('startYear', startYear);
         if (endYear) params.append('endYear', endYear);
-        if (countryFilter) params.append('country_name', countryFilter); // Use backend filter key
+        if (countryFilter) params.append('country_name', countryFilter);
 
         axios.get(`${API_BASE_URL}/country-profiles?${params.toString()}`)
             .then(response => {
-                setData(response.data.data || []); // Access data property
+                setData(response.data.data || []);
                 setError(null);
             })
             .catch(err => {
@@ -59,7 +57,7 @@ function CountryProfileChart() {
             const svg = d3.select(d3Container.current);
             svg.selectAll("*").remove();
 
-            const margin = { top: 20, right: 30, bottom: 100, left: 120 }; // Increased bottom/left margin
+            const margin = { top: 20, right: 30, bottom: 100, left: 120 };
             const width = 600 - margin.left - margin.right;
             const height = 400 - margin.top - margin.bottom;
 
@@ -67,7 +65,7 @@ function CountryProfileChart() {
                 .attr("transform", `translate(${margin.left},${margin.top})`);
 
             const x = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d[sortConfig.key]) || 1]) // Use dynamic key, ensure domain > 0
+                .domain([0, d3.max(data, d => d[sortConfig.key]) || 1])
                 .range([0, width]);
             chart.append("g")
                 .attr("transform", `translate(0, ${height})`)
@@ -92,23 +90,21 @@ function CountryProfileChart() {
                 .attr("height", y.bandwidth())
                 .attr("fill", "#69b3a2");
 
-            // Add X axis label
             svg.append("text")
                 .attr("text-anchor", "end")
                 .attr("x", width / 2 + margin.left)
-                .attr("y", height + margin.top + 60) // Adjust position
-                .text(sortConfig.key.replace(/_/g, ' ')); // Label based on sorted key
+                .attr("y", height + margin.top + 60) 
+                .text(sortConfig.key.replace(/_/g, ' '));
 
-            // Add Y axis label
             svg.append("text")
                 .attr("text-anchor", "end")
                 .attr("transform", "rotate(-90)")
-                .attr("y", margin.left - 100) // Adjust position
+                .attr("y", margin.left - 100)
                 .attr("x", -height / 2 - margin.top)
                 .text("Country");
 
         }
-    }, [data, sortConfig.key]); // Re-render D3 chart if data or sorted key changes
+    }, [data, sortConfig.key]); // Re-rendering if data changes
 
     const handleSortChange = (event) => {
         const newKey = event.target.value;
@@ -121,36 +117,33 @@ function CountryProfileChart() {
     };
 
      const handleLimitChange = (event) => {
-        const newLimit = Math.max(1, parseInt(event.target.value) || 10); // Ensure positive integer
+        const newLimit = Math.max(1, parseInt(event.target.value) || 10);
         setLimit(newLimit);
     };
 
-    // Handlers for new filters
     const handleStartYearChange = (event) => setStartYear(event.target.value);
     const handleEndYearChange = (event) => setEndYear(event.target.value);
     const handleCountryFilterChange = (event) => setCountryFilter(event.target.value);
 
-    // Available sort keys from the view
     const sortKeys = [
         'total_score', 'wins', 'draws', 'losses', 'matches_played', 'goals_scored',
         'goals_conceded', 'goal_difference', 'distinct_years_played',
         'wins_per_active_year', 'score_per_active_year'
     ];
 
-    // Avoid multiple fetch calls causing repeated data
+
     useEffect(() => {
-        // ...existing code...
+        
     }, []);
 
-    // Render country profile data only once
+    // Render country profile data
     return (
         <div>
             <h3>Country Profiles</h3>
-            {/* Filter Controls */}
             <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                  <div>
+                    // Labels = Dropdowns
                     <label>Country: </label>
-                    {/* Country Dropdown */}
                     <select value={countryFilter} onChange={handleCountryFilterChange}>
                         <option value="">-- All Countries --</option>
                         {countryList.map(c => <option key={c} value={c}>{c}</option>)}
@@ -158,7 +151,6 @@ function CountryProfileChart() {
                 </div>
                 <div>
                     <label>Years Active: </label>
-                    {/* Year Dropdowns */}
                     <select value={startYear} onChange={handleStartYearChange}>
                          <option value="">From Year</option>
                          {yearList.map(y => <option key={y} value={y}>{y}</option>)}
@@ -190,7 +182,6 @@ function CountryProfileChart() {
             {loading && <p>Loading chart...</p>}
             {error && <p style={{ color: 'red' }}>{error}</p>}
             <svg ref={d3Container} width={600} height={400}></svg>
-            {/* Optional: Display more stats below chart */}
             {data.length > 0 && !loading && (
                 <div style={{ marginTop: '20px' }}>
                     <h4>Details for Top {limit} ({sortConfig.key.replace(/_/g, ' ')})</h4>
