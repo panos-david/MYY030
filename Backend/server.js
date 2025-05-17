@@ -616,11 +616,11 @@ app.get('/api/top-countries/:metric', async (req, res) => {
     let query = `
         SELECT DISTINCT
             cp.country_name,
-            cp.matches_played,
+            cp.matches_played AS matches,
             cp.wins,
             cp.draws,
             cp.losses,
-            cp.goals_scored AS goals_scored, -- Alias to match potential metric name
+            cp.goals_scored AS goals, -- Alias to match potential metric name
             cp.goals_conceded,
             c.continent,         -- Get continent from countries table
             c.region_name,       -- Get region from countries table
